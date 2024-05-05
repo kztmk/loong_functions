@@ -1,47 +1,54 @@
-import { error, log } from 'firebase-functions/logger';
-import { Page } from 'puppeteer';
-import { convertTojson, sleep } from './utils';
+import {error, log} from "firebase-functions/logger";
+import {Page} from "puppeteer";
+import {convertTojson, sleep} from "./utils";
 
+/**
+ * Retrieves the Xtrends data from the specified page.
+ *
+ * @param {Page} page - The Puppeteer page object.
+ * @return {Promise<string>} A promise that resolves to
+ *a string representing the Xtrends data.
+ */
 export async function getXtrends(page: Page): Promise<string> {
   try {
     // find link to /explore
-    log('Finding the explore link');
-    const exploreLink = await page.waitForSelector('a[href="/explore"]');
+    log("Finding the explore link");
+    const exploreLink = await page.waitForSelector("a[href=\"/explore\"]");
     if (!exploreLink) {
-      error('Failed to find explore link');
-      throw new Error('Failed to find explore link');
+      error("Failed to find explore link");
+      throw new Error("Failed to find explore link");
     }
 
     // click the link
     exploreLink.click();
-    log('Clicked the explore link');
+    log("Clicked the explore link");
     // wait for the page to load
-    log('Waiting for trending link to appear');
+    log("Waiting for trending link to appear");
     const trendingLink = await page.waitForSelector(
-      'a[href="/explore/tabs/keyword"]'
+      "a[href=\"/explore/tabs/keyword\"]"
     );
     if (!trendingLink) {
-      error('Failed to find trending link');
-      throw new Error('Failed to find trending link');
+      error("Failed to find trending link");
+      throw new Error("Failed to find trending link");
     }
 
     trendingLink.click();
-    log('Clicked the trending link');
+    log("Clicked the trending link");
     // wait for the page to load
     let hasTitleFound = false;
     const startTime = new Date().getTime();
     let isJapanese = true;
     while (!hasTitleFound) {
       try {
-        const h2Contents = await page.$$eval('h2', (el) => {
+        const h2Contents = await page.$$eval("h2", (el) => {
           return el.map((e) => e.innerText);
         });
         for (let i = 0; i < h2Contents.length; i++) {
-          if (h2Contents[i].includes('日本のトレンド')) {
+          if (h2Contents[i].includes("日本のトレンド")) {
             hasTitleFound = true;
             break;
           }
-          if (h2Contents[i].includes('trends')) {
+          if (h2Contents[i].includes("trends")) {
             hasTitleFound = true;
             isJapanese = false;
             break;
@@ -52,41 +59,41 @@ export async function getXtrends(page: Page): Promise<string> {
         }
       } catch (e) {
         error(`error:${e}`);
-        throw new Error('Failed to get h2 contents');
+        throw new Error("Failed to get h2 contents");
       }
       await sleep(1000);
     }
 
-    const searchTarget = isJapanese
-      ? 'div[aria-label="タイムライン: 話題を検索"]'
-      : 'div[aria-label="Timeline: Explore"]';
+    const searchTarget = isJapanese ?
+      "div[aria-label=\"タイムライン: 話題を検索\"]" :
+      "div[aria-label=\"Timeline: Explore\"]";
 
     if (hasTitleFound) {
       // await targetPage.waitForNavigation({ waitUntil: 'domcontentloaded' });
-      log('h2 title found');
+      log("h2 title found");
       const TimelineElement = await page.$(searchTarget);
       if (TimelineElement) {
-        log(`Timeline: Explore found: ${isJapanese ? 'Japanese' : 'English'}`);
+        log(`Timeline: Explore found: ${isJapanese ? "Japanese" : "English"}`);
         const elementText = await page.$eval(searchTarget, (el: Element) =>
-          'innerText' in el ? el['innerText'] : ''
+          "innerText" in el ? el["innerText"] : ""
         );
-        if (typeof elementText === 'string') {
+        if (typeof elementText === "string") {
           const jsonDataStringity = JSON.stringify(convertTojson(elementText));
           return jsonDataStringity;
         } else {
-          error('elementText is not string');
-          return '';
+          error("elementText is not string");
+          return "";
         }
       } else {
-        error('Timeline: Explore not found');
-        return '';
+        error("Timeline: Explore not found");
+        return "";
       }
     } else {
-      error('h2 title not found');
-      return '';
+      error("h2 title not found");
+      return "";
     }
   } catch (err) {
-    error('Error getting xtrends:', err);
-    return '';
+    error("Error getting xtrends:", err);
+    return "";
   }
 }

@@ -1,24 +1,30 @@
-import { error, log } from 'firebase-functions/logger';
-import { Cookie } from 'puppeteer';
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { db } from '../../../index';
-import { getXtrends } from './getXtrends';
-import { loginByEmailAndPassword } from './xLogin';
+import {error, log} from "firebase-functions/logger";
+import {Cookie} from "puppeteer";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import {db} from "../../../index";
+import {getXtrends} from "./getXtrends";
+import {loginByEmailAndPassword} from "./xLogin";
 
+/**
+ * Retrieves cookies for the specified account name from Firestore.
+ * @param {string} accountName - The name of the account.
+ * @return {Promise<Cookie[]>} A promise that resolves to an array of cookies.
+ */
 async function getCookies(accountName: string): Promise<Cookie[]> {
-  log('accoutname:', accountName);
-  const docRef = db.collection('cookies').doc(accountName);
+  log("accoutname:", accountName);
+  const docRef = db.collection("cookies").doc(accountName);
+
   const docSnapshot = await docRef.get();
 
   if (docSnapshot.exists) {
     // subcollectionの取得
-    log('snapshot exists');
-    const cookiesData = docSnapshot.get('cookies');
+    log("snapshot exists");
+    const cookiesData = docSnapshot.get("cookies");
     if (!cookiesData) {
-      log('No cookies found for account: ', accountName);
+      log("No cookies found for account: ", accountName);
     } else {
-      log(cookiesData.length, 'cookies found for account: ', accountName);
+      log(cookiesData.length, "cookies found for account: ", accountName);
     }
     const cookies = cookiesData.map((data: any) => {
       return {
@@ -36,19 +42,31 @@ async function getCookies(accountName: string): Promise<Cookie[]> {
     });
     return cookies;
   } else {
-    log('snapshot not exists');
+    log("snapshot not exists");
     return [];
   }
 }
 
+/**
+ * Saves the specified cookies to Firestore.
+ * @param {string} accountName - The name of the account.
+ * @param {Promise<vodi>} cookies - An array of cookies to save.
+ */
 async function saveCookies(
   accountName: string,
   cookies: Cookie[]
 ): Promise<void> {
   // Save the cookies to Firestore
-  await db.collection('cookies').doc(accountName).set({ cookies });
+  await db.collection("cookies").doc(accountName).set({cookies});
 }
 
+/**
+ * Crawls the X website.
+ * @param {string} email - The email address to use for logging in.
+ * @param {string} password - The password to use for logging in.
+ * @param {string} accountName - The name of the account.
+ * @return {Promise<JSON>} A promise that resolves to the X trends.
+ */
 export async function crawlX(
   email: string,
   password: string,
@@ -56,14 +74,15 @@ export async function crawlX(
 ) {
   let updateCookie: Cookie[] = [];
 
-  log('Start the crawler');
+  log("Start the crawler");
   // stealth mode
+  // eslint-disable-next-line
   puppeteer.use(StealthPlugin());
   //
-  let xTrends = '';
+  let xTrends = "";
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--lang=ja-JP, ja'],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--lang=ja-JP, ja"],
   });
   // new page and go to X homepage
   const page = await browser.newPage();
@@ -72,46 +91,46 @@ export async function crawlX(
     let cookies = await getCookies(accountName);
     // Check if cookies are null or undefined
     if (!cookies) {
-      log('No cookies found for account: ', accountName);
+      log("No cookies found for account: ", accountName);
       cookies = [];
     } else {
       // Set the retrieved cookie in Puppeteer
       await page.setCookie(...cookies);
-      log('--------  set cookies');
+      log("--------  set cookies");
     }
 
-    await page.goto('https://twitter.com/home');
+    await page.goto("https://twitter.com/home");
 
-    //check login status
+    // check login status
     // if not login, redirect to login page
-    let firstPage = '';
+    let firstPage = "";
     const promiseLogined = page
-      .waitForSelector('a[href="/home"]', { timeout: 4000 })
+      .waitForSelector("a[href=\"/home\"]", {timeout: 4000})
       .then(
         () => {
-          log('--------  home Timeline found');
-          return 'logined';
+          log("--------  home Timeline found");
+          return "logined";
         },
         () => {
           if (firstPage.length === 0) {
-            log('-error-  home Timeline not found');
+            log("-error-  home Timeline not found");
           }
-          return 'error_logined';
+          return "error_logined";
         }
       );
     // not login
     const promiseNeedLogin = page
-      .waitForSelector('input[autocomplete="username"]', { timeout: 4000 })
+      .waitForSelector("input[autocomplete=\"username\"]", {timeout: 4000})
       .then(
         () => {
-          log('--------  need login');
-          return 'need_logined';
+          log("--------  need login");
+          return "need_logined";
         },
         () => {
           if (firstPage.length === 0) {
-            log('--------  already logined');
+            log("--------  already logined");
           }
-          return 'error_need_logined';
+          return "error_need_logined";
         }
       );
 
@@ -119,7 +138,7 @@ export async function crawlX(
       firstPage = result;
     });
 
-    let loginStatus = firstPage === 'logined' ? true : false;
+    let loginStatus = firstPage === "logined" ? true : false;
     if (!loginStatus) {
       loginStatus = await loginByEmailAndPassword(
         page,
@@ -130,27 +149,27 @@ export async function crawlX(
     }
 
     if (!loginStatus) {
-      error('Failed to login');
-      return '';
+      error("Failed to login");
+      return "";
     }
     const loginCookies = await page.cookies();
     await saveCookies(accountName, loginCookies);
-    log('--------  saved login cookies');
+    log("--------  saved login cookies");
 
     // Perform login and other actions
     xTrends = await getXtrends(page);
-    log('--------  got trends');
-    log('--------  update cookie');
+    log("--------  got trends");
+    log("--------  update cookie");
     updateCookie = await page.cookies();
     await saveCookies(accountName, updateCookie);
-    log('--------  saved update cookies');
+    log("--------  saved update cookies");
     return xTrends;
   } catch (e) {
-    error('Error in crawlX:', e);
+    error("Error in crawlX:", e);
+    return xTrends;
   } finally {
     // Close the page and save the cookie to Firestore
     await browser.close();
-    log('End the crawler');
-    return xTrends;
+    log("End the crawler");
   }
 }
