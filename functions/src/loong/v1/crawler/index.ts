@@ -13,7 +13,7 @@ export const writeXtrends = functions.pubsub
   .schedule('0 3,6,9,12,15,18,21 * * *')
   .timeZone('Asia/Tokyo')
   .onRun(async (context) => {
-    const xtrendsRef = db.collection('XTrends').doc();
+    const xtrendsCollection = db.collection('XTrends');
 
     if (xloginId && xloginPassword && xloginAccountName) {
       const xtrends = await crawlX(xloginId, xloginPassword, xloginAccountName);
@@ -23,8 +23,19 @@ export const writeXtrends = functions.pubsub
       };
 
       try {
-        await xtrendsRef.set(data);
+        // Add new document
+        await xtrendsCollection.add(data);
         log('Document written successfully!');
+
+        // Get all documents ordered by timestamp
+        const snapshot = await xtrendsCollection.orderBy('timestamp').get();
+
+        // If there are more than 8 documents, delete the oldest one
+        if (snapshot.size > 8) {
+          const oldestDoc = snapshot.docs[0];
+          await xtrendsCollection.doc(oldestDoc.id).delete();
+          log('Oldest document deleted successfully!');
+        }
       } catch (err) {
         error('Error writing document:', err);
       }
@@ -33,7 +44,7 @@ export const writeXtrends = functions.pubsub
   });
 
 export const testWriteXtrends = functions.https.onRequest(async (req, res) => {
-  const xtrendsRef = db.collection('XTrends').doc();
+  const xtrendsCollection = db.collection('XTrends');
 
   if (xloginId && xloginPassword && xloginAccountName) {
     const xtrends = await crawlX(xloginId, xloginPassword, xloginAccountName);
@@ -42,9 +53,20 @@ export const testWriteXtrends = functions.https.onRequest(async (req, res) => {
     };
 
     try {
-      await xtrendsRef.set(data);
+      // Add new document
+      await xtrendsCollection.add(data);
       log('Document written successfully!');
       res.status(200).send('Document written successfully!');
+
+      // // Get all documents ordered by timestamp
+      // const snapshot = await xtrendsCollection.orderBy('timestamp').get();
+
+      // // If there are more than 8 documents, delete the oldest one
+      // if (snapshot.size > 8) {
+      //   const oldestDoc = snapshot.docs[0];
+      //   await xtrendsCollection.doc(oldestDoc.id).delete();
+      //   log('Oldest document deleted successfully!');
+      // }
     } catch (err) {
       error('Error writing document:', err);
       res.status(500).send('Error writing document:');

@@ -7,14 +7,38 @@ import { getXtrends } from './getXtrends';
 import { loginByEmailAndPassword } from './xLogin';
 
 async function getCookies(accountName: string): Promise<Cookie[]> {
-  // Retrieve the cookie from Firestore
-  const snapshot = await db
-    .collection('cookies')
-    .where('accountName', '==', accountName)
-    .get();
-  const cookies = snapshot.docs.flatMap((doc) => doc.data().cookie);
+  log('accoutname:', accountName);
+  const docRef = db.collection('cookies').doc(accountName);
+  const docSnapshot = await docRef.get();
 
-  return cookies;
+  if (docSnapshot.exists) {
+    // subcollectionの取得
+    log('snapshot exists');
+    const cookiesData = docSnapshot.get('cookies');
+    if (!cookiesData) {
+      log('No cookies found for account: ', accountName);
+    } else {
+      log(cookiesData.length, 'cookies found for account: ', accountName);
+    }
+    const cookies = cookiesData.map((data: any) => {
+      return {
+        name: data.name,
+        value: data.value,
+        domain: data.domain,
+        path: data.path,
+        expires: data.expires,
+        size: data.size,
+        httpOnly: data.httpOnly,
+        secure: data.secure,
+        session: data.session,
+        sameSite: data.sameSite,
+      } as Cookie;
+    });
+    return cookies;
+  } else {
+    log('snapshot not exists');
+    return [];
+  }
 }
 
 async function saveCookies(
@@ -53,6 +77,7 @@ export async function crawlX(
     } else {
       // Set the retrieved cookie in Puppeteer
       await page.setCookie(...cookies);
+      log('--------  set cookies');
     }
 
     await page.goto('https://twitter.com/home');
@@ -117,7 +142,6 @@ export async function crawlX(
     log('--------  got trends');
     log('--------  update cookie');
     updateCookie = await page.cookies();
-    log('cookies:', updateCookie);
     await saveCookies(accountName, updateCookie);
     log('--------  saved update cookies');
     return xTrends;
