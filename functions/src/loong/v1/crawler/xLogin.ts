@@ -1,7 +1,7 @@
 import {error, log} from "firebase-functions/logger";
 import {Page} from "puppeteer";
+import {comfirmCode} from "../../../index";
 import {findLoginButton, findNextButton, sleep} from "./utils";
-
 /**
  * Logs in using email and password.
  * @param {Page} page - The Puppeteer page object.
@@ -86,6 +86,32 @@ export async function loginByEmailAndPassword(
     await loginButton.click();
     log("--------  clicked login button");
     // check successfuly login?
+    try {
+      await page.waitForSelector("a[href=\"/explore\"]", {timeout: 1000});
+    } catch (e) {
+      try {
+        // request comfirmation code
+        log("--------  request comfirmation code");
+        const confirmInput = await page.waitForSelector(
+          "input[data-testid=\"ocfEnterTextTextInput\"]"
+        );
+        log("--------  found confirm input");
+        if (confirmInput) {
+          log("--------  type comfirmation code");
+          await confirmInput.type(comfirmCode!, {delay: 120});
+          const nextButton = await findNextButton(page);
+          if (nextButton) {
+            log("--------  found next button");
+            await nextButton.click();
+            return true;
+          }
+        }
+        return false;
+      } catch (e) {
+        log("--------  failed to find explore link");
+        return false;
+      }
+    }
     await sleep();
     return true;
   } catch (error) {

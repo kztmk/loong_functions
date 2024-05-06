@@ -11,6 +11,7 @@ export const gmailPassword = process.env.GMAIL_PASSWORD;
 export const xloginId = process.env.X_LOGIN_ID;
 export const xloginPassword = process.env.X_LOGIN_PASSWORD;
 export const xloginAccountName = process.env.X_LOGIN_ACCOUNT_NAME;
+export const comfirmCode = process.env.COMFIRM_CODE;
 
 admin.initializeApp();
 export const db = admin.firestore();
