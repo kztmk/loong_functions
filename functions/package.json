@@ -1,6 +1,7 @@
 {
   "name": "functions",
   "scripts": {
+    "postinstall": "node node_modules/puppeteer/install.mjs",
     "lint": "eslint --ext .js,.ts .",
     "lint:fix": "eslint --ext .js,.ts --fix .",
     "build": "tsc --project ./tsconfig.json",
@@ -12,7 +13,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "20"
+    "node": "16"
   },
   "main": "lib/index.js",
   "dependencies": {
