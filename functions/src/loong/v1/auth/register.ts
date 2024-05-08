@@ -33,6 +33,18 @@ export const registerUser = functions.https.onRequest(async (req, res) => {
     return;
   }
 
+  // accountEmailの存在を確認
+  if (!accountEmail) {
+    res.status(400).send("accountEmail is missing");
+    return;
+  }
+
+  // passwordの存在を確認
+  if (!password) {
+    res.status(400).send("password is missing");
+    return;
+  }
+
   const usersRef = db.collection("users");
   const snapshot = await usersRef
     .where("purchaseEmail", "==", purchaseEmail)
