@@ -67,6 +67,7 @@ export const registerUser = functions.https.onRequest(async (req, res) => {
     // ユーザーが作成された後、データベースに購入時のメールアドレスを保存
     await usersRef.doc(userRecord.uid).set({
       purchaseEmail: purchaseEmail,
+      userId: userRecord.uid,
       accountEmail: accountEmail,
       timeStamp: admin.firestore.FieldValue.serverTimestamp(),
     });
