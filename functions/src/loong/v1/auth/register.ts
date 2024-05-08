@@ -68,6 +68,7 @@ export const registerUser = functions.https.onRequest(async (req, res) => {
     await usersRef.doc(userRecord.uid).set({
       purchaseEmail: purchaseEmail,
       accountEmail: accountEmail,
+      timeStamp: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     log("Create user: end");
