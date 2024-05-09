@@ -10,7 +10,7 @@ import {
 import {crawlX} from "./crawlX";
 
 export const writeXtrends = functions.pubsub
-  .schedule("0 3,6,9,12,15,18,21 * * *")
+  .schedule("0 4,8,12,16,20 * * *")
   .timeZone("Asia/Tokyo")
   .onRun(async (context) => {
     const xtrendsCollection = db.collection("XTrends");
@@ -31,7 +31,7 @@ export const writeXtrends = functions.pubsub
         const snapshot = await xtrendsCollection.orderBy("timestamp").get();
 
         // If there are more than 8 documents, delete the oldest one
-        if (snapshot.size > 8) {
+        if (snapshot.size > 6) {
           const oldestDoc = snapshot.docs[0];
           await xtrendsCollection.doc(oldestDoc.id).delete();
           log("Oldest document deleted successfully!");
