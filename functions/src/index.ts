@@ -1,6 +1,6 @@
-import * as dotenv from "dotenv";
-import * as admin from "firebase-admin";
-import * as loong from "./loong/services";
+import * as dotenv from 'dotenv';
+import * as admin from 'firebase-admin';
+import * as loong from './loong/services';
 
 dotenv.config();
 
@@ -15,4 +15,5 @@ export const comfirmCode = process.env.COMFIRM_CODE;
 
 admin.initializeApp();
 export const db = admin.firestore();
-export {loong};
+export const bucket = admin.storage().bucket('crawler-screenshot');
+export { loong };
