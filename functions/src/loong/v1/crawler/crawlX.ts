@@ -138,7 +138,11 @@ export async function crawlX(
       firstPage = result;
     });
 
-    let loginStatus = firstPage === "logined" ? true : false;
+    let loginStatus = false;
+    if (firstPage === "logined" || firstPage === "error_need_logined") {
+      loginStatus = true;
+    }
+
     if (!loginStatus) {
       loginStatus = await loginByEmailAndPassword(
         page,
