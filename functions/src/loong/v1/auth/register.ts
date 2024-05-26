@@ -75,9 +75,7 @@ export const registerUser = functions.https.onRequest(async (req, res) => {
         timeStamp: admin.firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
-      return res
-        .status(500)
-        .send('ID用メールアドレスのアカウントが既に存在します。');
+      res.status(500).send('ID用メールアドレスのアカウントが既に存在します。');
     }
 
     log('Create user: end');
